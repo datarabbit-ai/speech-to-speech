@@ -12,6 +12,8 @@ services:
       - 0.0.0.0 
       - --send_host 
       - 0.0.0.0 
+      - --tts
+      - melo
       - --lm_model_name 
       - microsoft/Phi-3-mini-4k-instruct 
       - --init_chat_role 
