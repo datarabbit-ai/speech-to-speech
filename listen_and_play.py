@@ -16,9 +16,7 @@ class ListenAndPlayArguments:
     )
     host: str = field(
         default="localhost",
-        metadata={
-            "help": "The hostname or IP address for listening and playing. Default is 'localhost'."
-        },
+        metadata={"help": "The hostname or IP address for listening and playing. Default is 'localhost'."},
     )
     send_port: int = field(
         default=12345,
@@ -30,7 +28,27 @@ class ListenAndPlayArguments:
     )
 
 
+def select_sd_devices():
+    devices = sd.query_devices()
+    device_list_in = [(device["index"], device["name"]) for device in devices if device["max_input_channels"] > 0]
+    device_list_out = [(device["index"], device["name"]) for device in devices if device["max_output_channels"] > 0]
+
+    print("Input devices")
+    for device in device_list_in:
+        print(f"* {device[0]} - {device[1]}")
+    device_in = int(input("Select input device (index): "))
+
+    print("Output devices")
+    for device in device_list_out:
+        print(f"* {device[0]} - {device[1]}")
+    device_out = int(input("Select output device (index): "))
+
+    return device_in, device_out
+
+
 def listen_and_play(
+    device_in: int,
+    device_out: int,
     send_rate=16000,
     recv_rate=44100,
     list_play_chunk_size=1024,
@@ -90,6 +108,7 @@ def listen_and_play(
             dtype="int16",
             blocksize=list_play_chunk_size,
             callback=callback_send,
+            device=device_in,
         )
         recv_stream = sd.RawOutputStream(
             samplerate=recv_rate,
@@ -97,6 +116,7 @@ def listen_and_play(
             dtype="int16",
             blocksize=list_play_chunk_size,
             callback=callback_recv,
+            device=device_out,
         )
         threading.Thread(target=send_stream.start).start()
         threading.Thread(target=recv_stream.start).start()
@@ -121,6 +141,7 @@ def listen_and_play(
 
 
 if __name__ == "__main__":
+    device_in, device_out = select_sd_devices()
     parser = HfArgumentParser((ListenAndPlayArguments,))
     (listen_and_play_kwargs,) = parser.parse_args_into_dataclasses()
-    listen_and_play(**vars(listen_and_play_kwargs))
+    listen_and_play(device_in, device_out, **vars(listen_and_play_kwargs))
